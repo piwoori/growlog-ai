@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.db
+*.sqlite3
+.venv/
+.env
+.vscode/
+.idea/
+
+# Model Cache
+app/models/*.bin
+app/models/*.pt
+app/models/checkpoints/
