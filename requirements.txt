@@ -4,3 +4,4 @@ transformers==4.44.2
 torch==2.4.1
 pydantic==2.9.2
 numpy==2.1.1
+openai>=2.9.0

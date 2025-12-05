@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
@@ -6,6 +9,12 @@ import torch.nn.functional as F
 import numpy as np
 from typing import Optional, Dict, List
 import traceback
+import os
+from openai import OpenAI
+
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+ADVICE_MODEL = os.getenv("ADVICE_MODEL", "gpt-4.1-mini")
+
 
 # ── 모델 설정
 MODEL_NAME = "cardiffnlp/twitter-xlm-roberta-base-sentiment"
@@ -19,6 +28,10 @@ model.eval()
 app = FastAPI(title="Growlog AI Sentiment & Quantum API", version=VERSION)
 
 # ── 입력/출력 모델 정의
+class AdviceRequest(BaseModel):
+    text: str           # 오늘 감정 메모 or 회고 내용
+    emoji: str | None = None  # 선택: 감정 이모지
+
 class TextInput(BaseModel):
     text: str
 
@@ -58,6 +71,126 @@ class QuantumSimResponse(BaseModel):
     I_total: List[float]
     components: List[ComponentOut]
     summary: Dict[str, float]
+
+def build_fallback_advice(text: str, emoji: str | None = None) -> str:
+    """OpenAI 호출이 실패했을 때 사용하는 간단한 규칙 기반 조언."""
+    t = text.strip()
+
+    negative_words = ["피곤", "힘들", "우울", "불안", "걱정", "짜증", "지쳤", "버겁", "무기력"]
+    stress_words = ["과제", "숙제", "시험", "공부", "일이 많", "마감", "데드라인"]
+    body_words = ["두통", "머리 아프", "어지럽", "몸살", "감기"]
+
+    is_negative = any(w in t for w in negative_words)
+    is_stress   = any(w in t for w in stress_words)
+    is_body     = any(w in t for w in body_words)
+
+    bad_emojis = ["😢", "😭", "😞", "😔", "😡", "😤", "😫", "😩", "😴", "🥲"]
+    good_emojis = ["😄", "🙂", "🤩", "😊", "😆", "😁"]
+
+    if emoji in bad_emojis:
+        is_negative = True
+    if emoji in good_emojis and not is_negative:
+        is_negative = False
+
+    # 케이스 분기
+    if is_body:
+        return (
+            "오늘은 몸이 조금 무거운 날 같아요. 따뜻한 물 많이 마시고, "
+            "무리하지 말고 일찍 쉬어 주면 좋겠어요."
+        )
+
+    if is_negative and is_stress:
+        return (
+            "요즘 할 일이 많아서 마음이 꽤 지친 상태인 것 같아요. "
+            "오늘 해야 할 것 중에서 꼭 중요한 것 한두 개만 정리하고, "
+            "잠깐 산책이나 스트레칭으로 머리를 식혀보면 어떨까요?"
+        )
+
+    if is_negative:
+        return (
+            "기분이 조금 아래쪽으로 내려가 있는 하루 같아요. "
+            "스스로를 몰아붙이기보다는, 좋아하는 음악을 틀어놓고 "
+            "짧게라도 휴식 시간을 만들어 보는 건 어떨까요?"
+        )
+
+    if is_stress:
+        return (
+            "해야 할 일들이 머릿속에서 빙글빙글 도는 느낌일 수 있어요. "
+            "간단한 할 일 목록을 적어두고, 가장 작은 것 하나부터 "
+            "차근차근 정리해보면 마음이 훨씬 가벼워질 거예요."
+        )
+
+    # 기본(무난한 날)
+    return (
+        "오늘 하루를 이렇게 기록한 것만으로도 이미 잘 하고 있어요. "
+        "지금 느낌을 잠깐 더 돌아보고, 남은 시간에는 나를 위한 작은 보상을 준비해보면 어떨까요?"
+    )
+
+
+@app.post("/advice")
+async def generate_advice(payload: AdviceRequest):
+    """
+    오늘 감정/메모를 기반으로 짧은 자기관리 피드백을 생성하는 엔드포인트.
+    - input: text(필수), emoji(선택)
+    - output: 한글 조언 2~3문장
+    """
+    if not payload.text.strip():
+        raise HTTPException(status_code=400, detail="text는 필수입니다.")
+
+    user_text = payload.text.strip()
+
+    # OpenAI를 먼저 시도하고, 실패하면 로컬 규칙 기반 문구로 대체
+    try:
+        emoji_part = (
+            f"사용자가 선택한 감정 이모지는 '{payload.emoji}'입니다.\n"
+            if payload.emoji
+            else ""
+        )
+
+        system_prompt = """
+너는 사용자의 하루 감정과 메모를 바탕으로, 짧은 자기관리 피드백을 제안하는 코치야.
+
+규칙:
+- 말투는 부드럽고 편안하게, 반말/존댓말 혼용 없이 "~요"체로 통일.
+- 2~3문장 정도로 짧게.
+- 너무 거창한 목표 말고, 오늘 당장 할 수 있는 가벼운 행동을 제안해줘.
+- 사용자를 평가하거나 비난하는 표현은 절대 사용하지 마.
+- 출력 형식은 줄바꿈 포함 자유롭게, 마크다운 기호는 쓰지 말 것.
+"""
+
+        completion = openai_client.responses.create(
+            model=ADVICE_MODEL,
+            input=[
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": f"""{emoji_part}다음은 사용자의 오늘 감정 메모입니다:
+
+\"\"\"{user_text}\"\"\"""",
+                },
+            ],
+            max_output_tokens=120,
+        )
+
+        advice_text = completion.output[0].content[0].text.strip()
+
+        return {
+            "advice": advice_text,
+            "model": ADVICE_MODEL,
+            "source": "openai",
+        }
+
+    except Exception as e:
+        # 크레딧/네트워크/기타 오류 → 로컬 조언으로 대체
+        print("❌ /advice 생성 오류 (fallback 사용):", e)
+        fallback = build_fallback_advice(user_text, payload.emoji)
+
+        return {
+            "advice": fallback,
+            "model": "local-fallback",
+            "source": "fallback",
+            "note": "OpenAI API 쿼터/네트워크 오류로 로컬 규칙 기반 조언을 반환했어요.",
+        }
 
 # ── 헬스체크
 @app.get("/health")
