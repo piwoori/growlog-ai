@@ -143,26 +143,20 @@ growlog-ai
 
 감정 변화 예측 기능
 
-🌱 Growlog Ecosystem
+## 🌱 Growlog Ecosystem
 
 Growlog 서비스는 다음 세 가지 시스템으로 구성됩니다.
 
-Frontend
-
+**Frontend**  
 사용자 인터페이스 및 데이터 시각화
 
-Backend
-
+**Backend**  
 데이터 관리 및 API 서버
 
-AI Server
-
+**AI Server**  
 감정 분석 및 AI 피드백 제공
 
-이 구조를 통해
-
-사용자의 행동 데이터와 감정 데이터를 연결하여
+이 구조를 통해 사용자의 행동 데이터와 감정 데이터를 연결하여  
 자기 관리 패턴을 분석하는 서비스를 구현합니다.
-
 
 ---
