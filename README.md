@@ -1,6 +1,6 @@
 # 🤖 Growlog AI
 
-[메인](./images/main.png)
+![메인](./images/main.png)
 사용자의 **감정 메모를 기반으로 감정 분석을 수행하는 AI 서비스**
 
 Growlog 서비스에서 작성된 감정 메모를 분석하여  
