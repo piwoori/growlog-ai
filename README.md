@@ -133,15 +133,19 @@ growlog-ai
 └── main.py
 ```
 
-🚀 Future Improvements
+---
 
-감정 분석 모델 고도화
+## 🚀 Future Improvements
 
-장기 감정 패턴 분석
+- 감정 분석 모델 고도화
 
-개인 맞춤 피드백 시스템
+- 장기 감정 패턴 분석
 
-감정 변화 예측 기능
+- 개인 맞춤 피드백 시스템
+
+- 감정 변화 예측 기능
+
+---
 
 ## 🌱 Growlog Ecosystem
 
