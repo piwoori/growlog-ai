@@ -74,8 +74,6 @@ Frontend / Backend 서비스와 연동하여 감정 데이터를 분석합니다
 
 ---
 
-### 3️⃣ 감정 기반 AI 피드백 제공
-
 AI 분석 결과를 기반으로  
 사용자에게 간단한 코멘트를 제공합니다.
 
@@ -146,14 +144,24 @@ growlog-ai
 
 🌱 Growlog Ecosystem
 
-Growlog Frontend
+Growlog 서비스는 다음 세 가지 시스템으로 구성됩니다.
 
-Growlog Backend
+Frontend
 
-Growlog AI
+사용자 인터페이스 및 데이터 시각화
 
-AI 분석을 통해
-사용자의 감정 흐름과 행동 패턴을 연결하는 자기 관리 서비스를 목표로 합니다.
+Backend
+
+데이터 관리 및 API 서버
+
+AI Server
+
+감정 분석 및 AI 피드백 제공
+
+이 구조를 통해
+
+사용자의 행동 데이터와 감정 데이터를 연결하여
+자기 관리 패턴을 분석하는 서비스를 구현합니다.
 
 
 ---
