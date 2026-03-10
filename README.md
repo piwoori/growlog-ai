@@ -59,7 +59,7 @@ Frontend / Backend 서비스와 연동하여 감정 데이터를 분석합니다
 
 ### 2️⃣ 감정 분석 결과 제공
 
-![AI 감정 분석](./images/emotion-ai.png)
+![AI 감정 분석](./images/emotion-record.png)
 
 텍스트 데이터를 분석하여  
 각 감정의 확률 값을 계산합니다.
